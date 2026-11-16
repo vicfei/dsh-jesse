@@ -1,0 +1,10 @@
+{
+  "name": "dsh-jesse",
+  "version": "0.0.1",
+  "description": "Strategy parameter optimization for DeepSeek Harness — grid sweeps with fee-aware backtests, train/test split, an overfit-gap column, and multiple-testing discounts on every report. Implements the core concept of Jesse (MIT). Name reserved; first release in development.",
+  "keywords": ["deepseek-harness", "dsh", "dsh-plugin", "jesse", "optimization", "quant", "backtesting", "hyperparameter-tuning", "overfitting"],
+  "repository": {"type": "git", "url": "git+https://github.com/vicfei/dsh-jesse.git"},
+  "homepage": "https://github.com/vicfei/dsh-jesse#readme",
+  "license": "MIT",
+  "author": "vicfei"
+}
