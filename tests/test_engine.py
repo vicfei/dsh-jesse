@@ -95,5 +95,26 @@ check("block MC returns finite", all(math.isfinite(r) for r, _ in mc))
 dds = sg.shuffle_trades_mc([0.02, -0.01, 0.03, -0.02, 0.015], 30, 42)
 check("shuffle MC drawdowns in (-1,0]", all(-1.0 <= d <= 0.0 for d in dds))
 
+# 9. objective bridge (V2.3)
+obj = {"symbol": "T", "horizon": 30, "P_above_current": 0.55,
+       "terminal_P10": 90.0, "terminal_P50": 105.0, "terminal_P90": 120.0,
+       "fan_width_80_rel": 0.3, "note": "test"}
+paths = op.scenario_paths(bars, obj)
+H = obj["horizon"]
+anchor0 = paths["P50"][0][2]
+check("scenario terminal hit at H then flat", set(paths) == {"P10", "P50", "P90"}
+      and abs(paths["P50"][H][2] / anchor0 - 105.0 / bars[-1][2]) < 1e-9
+      and abs(paths["P50"][-1][2] - paths["P50"][H][2]) < 1e-12)
+rows, combos, _ = op.run_objective({"fast": [5, 10], "slow": [30, 60]}, 5.0, obj, bars)
+check("objective rows ranked by worst bracket",
+      rows[0]["worst_bracket"] == max(r["worst_bracket"] for r in rows)
+      and all("ret_P50" in r for r in rows))
+degenerate = {"symbol": "T", "horizon": 30, "P_above_current": 0.5}
+try:
+    op.run_objective({"fast": [5], "slow": [30]}, 5.0, degenerate, bars)
+    check("objective without quantiles refused", False)
+except SystemExit:
+    check("objective without quantiles refused", True)
+
 print("result:", "GREEN" if not FAILS else "RED (%d)" % len(FAILS))
 sys.exit(1 if FAILS else 0)
