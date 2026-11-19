@@ -83,6 +83,62 @@ def rsi(closes, n=14):
     return [None] + out
 
 
+def coverage_gaps(bars, threshold=10):
+    gaps = []
+    for i in range(1, len(bars)):
+        try:
+            a = dt.date.fromisoformat(str(bars[i - 1][0])[:10])
+            b = dt.date.fromisoformat(str(bars[i][0])[:10])
+        except ValueError:
+            continue
+        if (b - a).days > threshold:
+            gaps.append({"from": str(bars[i - 1][0])[:10], "to": str(bars[i][0])[:10],
+                         "calendar_days": (b - a).days})
+    return gaps
+
+
+def check_preconditions(bars, grid):
+    problems = []
+    if len(bars) < 120:
+        problems.append(f"insufficient history: {len(bars)} bars, need >= 120 for a train/test split")
+    if any(not isinstance(b[2], (int, float)) or b[2] <= 0 for b in bars):
+        problems.append("non-positive or non-numeric close in input bars")
+    combos = list(itertools.product(*[grid[k] for k in grid])) if grid else []
+    if not combos:
+        problems.append("degenerate grid: no parameter combinations")
+    return problems
+
+
+def walk_forward(bars, grid, fee_bps, n_segments, seg_train):
+    """rolling multi-segment validation: each segment's train picks the params,
+    its own test scores them; chained across the tail. Returns per-segment rows."""
+    closes_total = len(bars)
+    seg_len = max(60, (closes_total - int(closes_total * seg_train)) // max(n_segments, 1))
+    max_lookback = max([max(v) for v in grid.values() if isinstance(max(v), (int, float))] or [0])
+    rows = []
+    start = closes_total - seg_len * n_segments
+    while start < closes_total - seg_len + 1:
+        train = bars[max(0, start - int(seg_len * seg_train / (1 - seg_train) or seg_len)):start] or bars[:start]
+        train = bars[:start] if not train else train
+        test = bars[start:start + seg_len]
+        if len(test) < 10 or len(train) < 30:
+            break
+        best, best_r = None, -1e18
+        keys = list(grid)
+        for combo in itertools.product(*[grid[k] for k in keys]):
+            p = dict(zip(keys, combo))
+            r_tr, _ = backtest(train, p.get("fast", 20), p.get("slow", 60), p.get("rsi_buy"), fee_bps)
+            if r_tr > best_r:
+                best_r, best = r_tr, p
+        r_te, n_te = backtest(test, best.get("fast", 20), best.get("slow", 60), best.get("rsi_buy"), fee_bps)
+        bh = test[-1][2] / test[0][2] - 1
+        rows.append({"from": str(test[0][0])[:10], "to": str(test[-1][0])[:10],
+                     "best": best, "train_ret": round(best_r, 4), "test_ret": round(r_te, 4),
+                     "buy_hold": round(bh, 4), "test_trades": n_te})
+        start += seg_len
+    return rows, seg_len
+
+
 def backtest(bars, fast, slow, rsi_buy, fee_bps, initial=100000.0):
     closes = [b[2] for b in bars]
     f, s, r = sma(closes, fast), sma(closes, slow), rsi(closes)
@@ -142,6 +198,9 @@ def main():
     ap.add_argument("--grid", required=True)
     ap.add_argument("--fee_bps", type=float, default=5.0)
     ap.add_argument("--train_frac", type=float, default=0.7)
+    ap.add_argument("--walkforward", type=int, default=0, metavar="N",
+                    help="rolling multi-segment validation with N test segments (0 = single split)")
+    ap.add_argument("--save", action="store_true", help="write the audit JSON artifact")
     ap.add_argument("--lang", choices=("en", "zh"), default="en",
                     help="output language (default en; zh is the fallback)")
     args = ap.parse_args()
@@ -149,8 +208,69 @@ def main():
     data = json.load(open(args.data))
     symbol, bars = next(iter(data.items()))
     grid = json.loads(args.grid)
+    problems = check_preconditions(bars, grid)
+    if problems:
+        sys.exit("refused honestly — " + "; ".join(problems))
+    gaps = coverage_gaps(bars)
+    source = {"origin": "user-provided klines JSON", "symbol": symbol, "bars": len(bars),
+              "date_range": [str(bars[0][0])[:10], str(bars[-1][0])[:10]], "coverage_gaps": gaps}
+    if args.walkforward:
+        wf_rows, seg_len = walk_forward(bars, grid, args.fee_bps, args.walkforward, args.train_frac)
+        max_lookback = max([max(v) for v in grid.values() if isinstance(max(v), (int, float))] or [0])
+        agg = 1.0
+        for r in wf_rows:
+            agg *= (1 + r["test_ret"])
+        agg -= 1
+        bh_all = bars[-1][2] / bars[wf_rows and (len(bars) - seg_len * len(wf_rows)) or 0][2] - 1
+        print(f"## walk-forward · {symbol} · {len(wf_rows)} segments × {seg_len} bars (train frac {args.train_frac:.0%})")
+        if seg_len < max_lookback:
+            print(f"⚠ honest note: test segments ({seg_len} bars) are shorter than the grid's longest "
+                  f"lookback ({max_lookback}) — long-lookback params cannot trade inside test segments; "
+                  f"prefer fewer segments or a shorter-lookback grid")
+        print(f"- chained walk-forward return: **{agg:+.2%}** · same-window buy&hold: {bh_all:+.2%}")
+        drift = {f"{r['best'].get('fast')}x{r['best'].get('slow')}": 1 for r in wf_rows}
+        print(f"- distinct best-param sets across segments: {len(drift)} of {len(wf_rows)} — drift is information, not noise to tune away\n")
+        print("| from | to | best fast×slow | train_ret | test_ret | buy&hold | trades |")
+        print("|---|---|---|---|---|---|---|")
+        for r in wf_rows:
+            print(f"| {r['from']} | {r['to']} | {r['best'].get('fast')}×{r['best'].get('slow')} "
+                  f"| {r['train_ret']:+.2%} | {r['test_ret']:+.2%} | {r['buy_hold']:+.2%} | {r['test_trades']} |")
+        print("\n- walk-forward honesty: each segment's params were chosen on ITS OWN train window only; "
+              "the chained return is the realistic estimate, the single-split table is the optimistic one.")
+        if args.save:
+            import os
+            os.makedirs("opts", exist_ok=True)
+            artifact = {"schema": "opt-report/0", "symbol": symbol,
+                        "envelope": {"protocol": "walk-forward", "segments": len(wf_rows),
+                                     "segment_bars": seg_len, "train_frac": args.train_frac,
+                                     "grid_size": None, "fee_bps": args.fee_bps,
+                                     "test_only_once": True, "method": t("method")},
+                        "source": source, "walk_forward": wf_rows,
+                        "chained_return": round(agg, 4),
+                        "disclosure": "walk-forward chained return is the realistic estimate; "
+                                      "parameters drift across segments by design"}
+            path = f"opts/{symbol.replace('/', '_')}-wf.json"
+            json.dump(artifact, open(path, "w"), ensure_ascii=False, indent=1, default=str)
+            print(f"→ {path}", file=sys.stderr)
+        return
     rows, combos, bench = run(grid, args.fee_bps, args.train_frac, bars, symbol)
     render(rows, combos, bench, symbol, bars, args.fee_bps, args.train_frac)
+    if args.save:
+        import os
+        best = rows[0]
+        artifact = {"schema": "opt-report/0", "symbol": symbol,
+                    "envelope": {"protocol": "single train/test split",
+                                 "train_frac": args.train_frac,
+                                 "grid_size": len(combos), "fee_bps": args.fee_bps,
+                                 "test_only_once": True, "method": t("method")},
+                    "source": source,
+                    "rows": rows,
+                    "leader": {k: best[k] for k in ("train_ret", "test_ret", "overfit_gap")},
+                    "disclosure": "in-sample until proven otherwise; test window may be consulted once"}
+        os.makedirs("opts", exist_ok=True)
+        path = f"opts/{symbol.replace('/', '_')}-opt.json"
+        json.dump(artifact, open(path, "w"), ensure_ascii=False, indent=1, default=str)
+        print(f"→ {path}", file=sys.stderr)
 
 
 if __name__ == "__main__":
