@@ -72,5 +72,28 @@ env = {"protocol": "single train/test split", "train_frac": 0.7, "grid_size": le
        "fee_bps": 5.0, "test_only_once": True, "method": op.t("method")}
 check("envelope carries disciplines", env["test_only_once"] is True and env["grid_size"] == 4)
 
+# 8. significance engine (V2.1+V2.2)
+import significance as sg
+sq, p = [], 100.0  # square wave: 30 up bars then 30 down bars, 6 cycles —
+for b in range(6):  # the case SMA-cross timing genuinely wins vs random entries
+    for i in range(30):
+        p *= 1.012
+        sq.append([f"2025-{(b*60+i)//30%12+1:02d}-{(b*60+i)%28+1:02d}", p*0.99, p, p*1.01, p*0.98, 1000.0])
+    for i in range(30):
+        p *= 0.990
+        sq.append([f"2025-{(b*60+30+i)//30%12+1:02d}-{(b*60+30+i)%28+1:02d}", p*0.99, p, p*1.01, p*0.98, 1000.0])
+r_edge, t_edge = sg.strategy_return(sq, 5, 30, None, 5.0)
+dist = sg.random_entry_distribution(sq, t_edge, 60, 5.0, 42)
+check("square-wave edge beats random median", r_edge > dist[len(dist)//2])
+flat = bars  # random-walk synthetic
+r_f, t_f = sg.strategy_return(flat, 5, 30, None, 5.0)
+dist_f = sg.random_entry_distribution(flat, t_f, 60, 5.0, 42)
+pct = sum(1 for x in dist_f if x < r_f) / len(dist_f)
+check("random-walk percentile is unremarkable", 0.05 <= pct <= 0.97)
+mc = sg.block_resample_mc(flat, 5, 30, None, 5.0, 40, 5, 42)
+check("block MC returns finite", all(math.isfinite(r) for r, _ in mc))
+dds = sg.shuffle_trades_mc([0.02, -0.01, 0.03, -0.02, 0.015], 30, 42)
+check("shuffle MC drawdowns in (-1,0]", all(-1.0 <= d <= 0.0 for d in dds))
+
 print("result:", "GREEN" if not FAILS else "RED (%d)" % len(FAILS))
 sys.exit(1 if FAILS else 0)
