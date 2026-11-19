@@ -1,35 +1,85 @@
 # ROADMAP — dsh-jesse
 
-北极星：八仓家族的调参引擎，吃 Jesse 8.8k★ 流量，30 天 100–300★。
-命名全表面：GitHub=dsh-jesse（镜像上游小写仓名 `jesse`）、npm=dsh-jesse（同名）。
-家族分工：nautilus_trader=回测引擎深度，本仓=优化循环与防过拟合纪律。
+North star: the family's parameter-optimization seat, riding the Jesse 8.8k★
+gravity, 100–300★ in 30 days. Naming on all surfaces: GitHub = dsh-jesse
+(mirrors the upstream lowercase name) / npm = dsh-jesse. Family division:
+dsh-nautilus_trader = backtest-engine depth; this repo = the optimization
+loop and anti-overfitting discipline.
 
-## 里程碑
+## Positioning discipline (this repo's own)
 
-### M0 ✅（2026-11-17）
-网格优化器（费感知回测评价 + train/test 切分 + 过拟合缺口列 + 多重检验
-警示 + test-only-once 规则）。真实冒烟：BTC 365d 18 组参数——train 榜首
--1.21%（train 市场 -30.6%）但缺口 +2.96% 如实呈现。
+Upstream [Jesse](https://github.com/jesse-ai/jesse) is an 8-year, actively
+maintained, commercially backed platform that has already productized
+**bootstrap rule-significance testing**, **dual-mode Monte Carlo**, and a
+**local MCP server** for AI assistants. Head-on feature competition is
+unwinnable and unnecessary. This repo is the **zero-dependency auditable
+lightweight**: stdlib-only, honest-by-construction reports, family-artifact
+interop (dsh-Kronos objective files as fitness), upstream in the README as a
+**complement** (the heavy full-platform), never a competitor.
 
-### M0.5 · 发布包
-- [ ] README 打磨 + 冒烟表截图 + npm 0.0.1 占位（owner 手动）
-- [ ] 公开仓 topics + 八仓互链 + marketplace + 渠道
+**Competitive read (2026-11-20 deep-dive, issue #1)**: their "reject noisy
+ideas early" language and dual-mode MC validate the family's G3 lineage — we
+ship the slim stdlib edition of the same discipline, plus the family bridge
+upstream cannot have.
 
-### M1 · 搜索深度（第 2-3 周）
-- [ ] Optuna 贝叶斯搜索（早停+预算护栏）
-- [ ] walk-forward 滚动验证（多段切分，替代单次 70/30）
-- [ ] 评价后端可选接 dsh-nautilus_trader 桥（事件驱动撮合升级 bar 级评价）
+## Milestones
 
-### M2 · 策略 DSL（第 4-6 周）
-- [ ] Jesse 式策略生命周期 DSL（should_long/on_update 钩子，配置化）
-- [ ] 与家族互通：优化产物一键生成 nautilus 策略模板 / 议院数据卡
+### M0 ✅ (2026-11-17)
+Grid optimizer (fee-aware backtest evaluation + train/test split + overfit
+gap column + multiple-testing warning + test-only-once rule). Real smoke:
+BTC 365d, 18 parameter sets — train leader -1.21% (train market -30.6%)
+with the +2.96% gap shown as-is.
 
-### M3 · 生态（第 2 月起）
-- [ ] 优化报告标准化（OPT-REPORT spec，与 IC-MEMO/RESEARCH-TRAIL 会师）
-- [ ] 公共参数库（按市场状态分组的先验区间）
+### V1 · Hardening + release train → npm 0.1.0 (next session)
+- [ ] V1.1 EN-first: engine output via i18n table (en default, `--lang zh`
+      fallback); README pure EN + `README.zh-CN.md`; the comparison table
+      places upstream jesse as the complement
+- [ ] V1.2 honesty systematization: report envelope {protocol, split,
+      grid_size N → multiple-testing note, test-only-once stated in the
+      output itself}; unavailable-with-reason on insufficient windows
+- [ ] V1.3 source metadata rides: data origin/date-range/bars/coverage gaps
+- [ ] V1.4 **walk-forward validation**: rolling multi-segment split replaces
+      the single 70/30; per-segment stability column (best-param drift);
+      walk-forward efficiency reported honestly
+- [ ] V1.5 release train: root package (bin, dsh.bundle + skill, hermetic
+      tests + CI, `scripts/*.py` glob); owner publish; awesome-dsh submission
 
-## 纪律（不可让话）
+### V2 · The significance engine → npm 0.2.0
+- [ ] V2.1 **rule significance testing, stdlib edition**: random-entry
+      bootstrap distribution vs the strategy on the same history — "reject
+      noisy ideas early" (G3 / factor-auth lineage)
+- [ ] V2.2 **Monte Carlo light, dual mode**: trade-order shuffling +
+      block-resampled candles (slim inline block bootstrap; no external deps)
+- [ ] V2.3 **the family objective bridge**: consume dsh-Kronos
+      `--objective-out` files as fitness targets (optimize P_above / fan
+      width — distribution metrics, not point values) — the interop upstream
+      cannot have
 
-- 过拟合缺口与多重检验警示不可从报告剥离；
-- test 段只许看一次的规则写进输出本身；
-- in-sample 结果不得当作预测表述；不做投资建议。
+### V3 · Search depth + strategy DSL (0.3.x)
+- [ ] V3.1 budgeted random search with adaptive narrowing (stdlib; honest
+      framing: Optuna-grade tuning belongs to upstream jesse)
+- [ ] V3.2 strategy lifecycle DSL (config-defined hooks) + nautilus template
+      export (one-directional, no sibling repo changes)
+- [ ] V3.3 optional evaluation backend bridge (subprocess/file protocol to
+      dsh-nautilus_trader; bar-level default stays stdlib)
+
+### V4 · Ecosystem (0.4.x)
+- [ ] OPT-REPORT spec (family format; joins IC-MEMO / RESEARCH-TRAIL /
+      SCENARIO-REPORT)
+- [ ] parameter prior library grouped by market regime (disclosed priors)
+- [ ] monthly incumbent digest (an active incumbent must be watched, not
+      assumed static)
+
+## Star strategy
+
+1. Name = traffic (`jesse`); topics carry dsh/dsh-plugin (auto-curated lists).
+2. Hook: **"reject noisy parameters before they cost you — walk-forward +
+   significance, zero dependencies"**; the Kronos objective bridge is hook #2.
+3. The overfit-gap table is post-ready; the significance verdict doubles it.
+4. awesome-dsh submission after npm 0.1.0; family same-day combo discipline.
+
+## Discipline (non-negotiable)
+
+- The overfit gap and multiple-testing warning never detach from the report.
+- The test-only-once rule is written into the output itself.
+- In-sample results are never phrased as predictions; no investment advice.
