@@ -1,0 +1,15 @@
+{
+  "name": "dsh-jesse",
+  "version": "0.1.0",
+  "description": "Strategy parameter optimization for DeepSeek Harness — the zero-dependency auditable lightweight of the Jesse discipline: grid and walk-forward optimization with fee-aware backtests, an overfit-gap column, a multiple-testing discount, and (V2) a stdlib significance engine (random-entry bootstrap + dual-mode Monte Carlo light) plus the dsh-Kronos objective bridge. The optimizer that tells you when it's lying to you.",
+  "bin": { "dsh-jesse": "bin/dsh-jesse.js" },
+  "dsh": { "bundle": { "patch": "./cordis.patch.yml" }, "manifestVersion": 1 },
+  "files": ["bin", "scripts/*.py", "skills", "cordis.patch.yml", "SKILL.md", "README.md", "README.zh-CN.md", "ROADMAP.md", "LICENSE"],
+  "scripts": { "test": "python3 tests/test_engine.py && node bin/dsh-jesse.js --help" },
+  "engines": { "node": ">=16" },
+  "keywords": ["deepseek-harness", "dsh", "dsh-plugin", "jesse", "optimization", "backtesting", "walk-forward", "overfitting", "multiple-testing", "monte-carlo", "significance-testing", "quant", "hyperparameters"],
+  "repository": { "type": "git", "url": "git+https://github.com/vicfei/dsh-jesse.git" },
+  "homepage": "https://github.com/vicfei/dsh-jesse#readme",
+  "license": "MIT",
+  "author": "vicfei"
+}

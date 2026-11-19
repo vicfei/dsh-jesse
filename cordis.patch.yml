@@ -1,0 +1,6 @@
+# dsh-jesse bundle layer: inserts the plugin into the profile's layer stack.
+# The skill (skills/dsh-jesse/SKILL.md) is discovered by dsh-skill-filesystem;
+# the CLI stays on PATH via the npm bin. The engine is stdlib-only Python.
+- insert:
+    - id: dsh-jesse
+      name: 'dsh-jesse'
