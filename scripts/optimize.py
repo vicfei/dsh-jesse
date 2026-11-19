@@ -109,6 +109,53 @@ def check_preconditions(bars, grid):
     return problems
 
 
+def scenario_paths(bars, obj, horizon_pad=20):
+    """build deterministic scenario bar paths from a dsh-Kronos objective file:
+    log-linear ramps from the last close to each terminal quantile (P10/P50/P90).
+    The distribution lives in the terminal, not the path shape — a disclosed
+    simplification."""
+    last = obj.get("_anchor_close") or bars[-1][2]
+    H = max(int(obj.get("horizon", 30)), 5)
+    paths = {}
+    for tag, key in (("P10", "terminal_P10"), ("P50", "terminal_P50"), ("P90", "terminal_P90")):
+        term = obj.get(key)
+        if not term or term <= 0:
+            continue
+        ratio = (term / last) ** (1 / H)
+        p, path = None, []
+        d0 = dt.date(2026, 1, 1)
+        for i in range(H + horizon_pad + 1):
+            p = last if i == 0 else (p * ratio if i <= H else term)  # anchor → ramp → flat
+            iso = (d0 + dt.timedelta(days=i)).isoformat()
+            path.append([iso, p * 0.995, p, p * 1.005, p * 0.995, 1000.0])
+        paths[tag] = path
+    return paths
+
+
+def run_objective(grid, fee_bps, obj, bars):
+    """rank parameter sets on the Kronos scenario bracket instead of the
+    historical train window: each combo is backtested on the P10/P50/P90
+    scenario paths; rank by the WORST bracket return (optimize the
+    distribution, not the point)."""
+    paths = scenario_paths(bars, obj)
+    if not paths:
+        sys.exit("refused honestly — the objective file lacks usable terminal quantiles")
+    keys = list(grid)
+    combos = list(itertools.product(*[grid[k] for k in keys]))
+    rows = []
+    for combo in combos:
+        p = dict(zip(keys, combo))
+        rs = {}
+        for tag, path in paths.items():
+            r, n = backtest(path, p.get("fast", 20), p.get("slow", 60), p.get("rsi_buy"), fee_bps)
+            rs[tag] = round(r, 4)
+        worst = min(rs.values())
+        rows.append({**p, **{f"ret_{k}": v for k, v in rs.items()},
+                     "worst_bracket": round(worst, 4)})
+    rows.sort(key=lambda r: -r["worst_bracket"])
+    return rows, combos, paths
+
+
 def walk_forward(bars, grid, fee_bps, n_segments, seg_train):
     """rolling multi-segment validation: each segment's train picks the params,
     its own test scores them; chained across the tail. Returns per-segment rows."""
@@ -198,6 +245,8 @@ def main():
     ap.add_argument("--grid", required=True)
     ap.add_argument("--fee_bps", type=float, default=5.0)
     ap.add_argument("--train_frac", type=float, default=0.7)
+    ap.add_argument("--objective", metavar="FILE",
+                    help="rank params on a dsh-Kronos --objective-out scenario bracket (P10/P50/P90) instead of the historical train window")
     ap.add_argument("--walkforward", type=int, default=0, metavar="N",
                     help="rolling multi-segment validation with N test segments (0 = single split)")
     ap.add_argument("--save", action="store_true", help="write the audit JSON artifact")
@@ -214,6 +263,37 @@ def main():
     gaps = coverage_gaps(bars)
     source = {"origin": "user-provided klines JSON", "symbol": symbol, "bars": len(bars),
               "date_range": [str(bars[0][0])[:10], str(bars[-1][0])[:10]], "coverage_gaps": gaps}
+    if args.objective:
+        obj = json.load(open(args.objective))
+        rows, combos, paths = run_objective(grid, args.fee_bps, obj, bars)
+        print(f"## objective optimization · {symbol} · scenario bracket from {args.objective}")
+        print(f"- scenario: horizon {obj.get('horizon')} · P_above_current {obj.get('P_above_current', 0):.0%} · "
+              f"fan width {obj.get('fan_width_80_rel', 0):.1%} (dsh-Kronos objective)")
+        print(f"- ranking: worst-of-bracket (P10/P50/P90 scenario paths) — optimize the distribution, not the point\n")
+        print("| fast | slow | ret_P10 | ret_P50 | ret_P90 | worst_bracket |")
+        print("|---|---|---|---|---|---|")
+        for r in rows[:8]:
+            print(f"| {r['fast']} | {r['slow']} | {r.get('ret_P10', float('nan')):+.2%} "
+                  f"| {r.get('ret_P50', float('nan')):+.2%} | {r.get('ret_P90', float('nan')):+.2%} "
+                  f"| {r['worst_bracket']:+.2%} |")
+        print("\n- honest notes: scenarios are NOT predictions (the Kronos disclosure rides in the "
+              "objective file); scenario path shape is a log-linear ramp to each terminal quantile — "
+              "the distribution lives in the terminal, not the path; params chosen here were NEVER "
+              "scored on future data, only on the disclosed scenario bracket.")
+        if args.save:
+            import os
+            os.makedirs("opts", exist_ok=True)
+            artifact = {"schema": "opt-report/0", "symbol": symbol,
+                        "envelope": {"protocol": "kronos-objective bracket",
+                                     "grid_size": len(combos), "fee_bps": args.fee_bps,
+                                     "objective_file": args.objective,
+                                     "test_only_once": True, "method": "worst-of-bracket ranking"},
+                        "source": source, "rows": rows,
+                        "disclosure": "ranked on scenario brackets, not future data; scenarios are not predictions"}
+            path = f"opts/{symbol.replace('/', '_')}-objective.json"
+            json.dump(artifact, open(path, "w"), ensure_ascii=False, indent=1, default=str)
+            print(f"→ {path}", file=sys.stderr)
+        return
     if args.walkforward:
         wf_rows, seg_len = walk_forward(bars, grid, args.fee_bps, args.walkforward, args.train_frac)
         max_lookback = max([max(v) for v in grid.values() if isinstance(max(v), (int, float))] or [0])
