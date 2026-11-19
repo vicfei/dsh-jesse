@@ -3,8 +3,8 @@
 **Grid-sweep your strategy parameters on real data — then read the number that
 most optimizers hide: the train→test overfit gap, with a multiple-testing
 discount attached. The optimizer that tells you when it's lying to you.**
-**在真实数据上扫策略参数——然后读出多数优化器不给你看的数字：train→test
-过拟合缺口，附多重检验折减警示。会告诉你"我什么时候在骗你"的优化器。**
+
+[English](README.md) | [简体中文](README.zh-CN.md)
 
 [![DeepSeek Harness](https://img.shields.io/badge/DSH-plugin-4E6DD4)](https://github.com/deepseek-ai) [![License: MIT](https://img.shields.io/badge/license-MIT-3da639)](LICENSE) [![Jesse MIT](https://img.shields.io/badge/concept-Jesse%20MIT-3da6da)](https://github.com/jesse-ai/jesse)
 
@@ -17,13 +17,21 @@ discount attached. The optimizer that tells you when it's lying to you.**
 > [dsh-OpenBB](https://github.com/vicfei/dsh-OpenBB) · [dsh-CCXT](https://github.com/vicfei/dsh-CCXT) ·
 > [dsh-Vibe-Trading](https://github.com/vicfei/dsh-Vibe-Trading).
 
-## Why (Jesse vs this vs the family's backtester)
+## Why (and where upstream jesse fits — a complement, not a competitor)
 
-| | Jesse (framework) | dsh-nautilus_trader (sibling) | **dsh-jesse** |
+Upstream [Jesse](https://github.com/jesse-ai/jesse) is a mature 8-year
+platform: Rust indicators, Optuna + Ray tuning, significance testing, Monte
+Carlo, live trading, its own MCP server. **When you need that full platform,
+use jesse.** dsh-jesse is the **zero-dependency auditable lightweight** for
+the DSH session: stdlib-only, honest-by-construction reports, family
+artifact interop.
+
+| | upstream jesse (complement) | dsh-nautilus_trader (sibling) | **dsh-jesse** |
 |---|---|---|---|
-| Focus | accurate backtests + Optuna tuning | event-driven engine depth | **the tuning loop itself** |
-| Runs where | Python lab | DSH tools | **DSH in-session** — agent sweeps params, reads the verdict |
-| Anti-overfit | — | — | **train/test split + overfit-gap column + Bonferroni-style discount + test-only-once rule** |
+| Focus | full platform: Optuna tuning, live, ML | event-driven engine depth | **the tuning loop + anti-overfit discipline** |
+| Deps | Rust + Ray + Optuna + Docker | moderate | **zero (stdlib only)** |
+| Runs where | Python lab / its dashboard | DSH tools | **DSH in-session** — agent sweeps params, reads the verdict |
+| Anti-overfit | significance testing + MC (productized) | — | **train/test split + overfit-gap + Bonferroni-style discount + test-only-once rule, stated IN the output** |
 
 ## Quick start
 
@@ -31,6 +39,7 @@ discount attached. The optimizer that tells you when it's lying to you.**
 git clone https://github.com/vicfei/dsh-jesse && cd dsh-jesse
 python3 scripts/optimize.py --data <klines.json> \
   --grid '{"fast":[5,10,20],"slow":[30,60,90],"rsi_buy":[25,35]}' --fee_bps 5
+python3 scripts/optimize.py --data klines.json --grid '...' --lang zh   # Chinese fallback
 ```
 
 Real smoke (binance BTC/USDT 365d, 2026-11-17): best train config −1.21% in a
@@ -40,8 +49,10 @@ trend-following cut the loss; the honest read is on the page.
 
 ## Status & roadmap
 
-v0 grid optimizer smoke-tested on live data. [ROADMAP](ROADMAP.md): M1 Optuna
-Bayesian search + walk-forward; M2 strategy DSL (Jesse-style lifecycle hooks).
+v0.2.0 — V1 hardening (walk-forward, honesty envelope), V2 significance
+engine (random-entry bootstrap + dual-mode Monte Carlo light + the dsh-Kronos
+objective bridge) shipped; hermetic tests + CI green. See [ROADMAP](ROADMAP.md)
+for V3 (budgeted search, strategy DSL) and V4 (OPT-REPORT spec).
 
 ## License & disclaimer
 
