@@ -1,0 +1,192 @@
+{
+ "schema": "opt-report/0",
+ "symbol": "BTCUSDT",
+ "envelope": {
+  "protocol": "single train/test split",
+  "train_frac": 0.7,
+  "grid_size": 18,
+  "fee_bps": 5.0,
+  "test_only_once": true,
+  "method": "grid scan with train/test split + overfit gap + multiple-testing lens"
+ },
+ "source": {
+  "origin": "user-provided klines JSON",
+  "symbol": "BTCUSDT",
+  "bars": 365,
+  "date_range": [
+   "2025-11-17",
+   "2026-11-16"
+  ],
+  "coverage_gaps": []
+ },
+ "rows": [
+  {
+   "fast": 5,
+   "slow": 90,
+   "rsi_buy": 25,
+   "train_ret": -0.0121,
+   "test_ret": -0.0417,
+   "overfit_gap": 0.0296,
+   "train_trades": 1
+  },
+  {
+   "fast": 5,
+   "slow": 90,
+   "rsi_buy": 35,
+   "train_ret": -0.0121,
+   "test_ret": -0.0417,
+   "overfit_gap": 0.0296,
+   "train_trades": 1
+  },
+  {
+   "fast": 5,
+   "slow": 30,
+   "rsi_buy": 25,
+   "train_ret": -0.0178,
+   "test_ret": -0.0113,
+   "overfit_gap": -0.0066,
+   "train_trades": 4
+  },
+  {
+   "fast": 5,
+   "slow": 30,
+   "rsi_buy": 35,
+   "train_ret": -0.0178,
+   "test_ret": -0.0113,
+   "overfit_gap": -0.0066,
+   "train_trades": 4
+  },
+  {
+   "fast": 10,
+   "slow": 60,
+   "rsi_buy": 25,
+   "train_ret": -0.056,
+   "test_ret": -0.0656,
+   "overfit_gap": 0.0096,
+   "train_trades": 3
+  },
+  {
+   "fast": 10,
+   "slow": 60,
+   "rsi_buy": 35,
+   "train_ret": -0.056,
+   "test_ret": -0.0656,
+   "overfit_gap": 0.0096,
+   "train_trades": 3
+  },
+  {
+   "fast": 5,
+   "slow": 60,
+   "rsi_buy": 25,
+   "train_ret": -0.0667,
+   "test_ret": -0.044,
+   "overfit_gap": -0.0227,
+   "train_trades": 3
+  },
+  {
+   "fast": 5,
+   "slow": 60,
+   "rsi_buy": 35,
+   "train_ret": -0.0667,
+   "test_ret": -0.044,
+   "overfit_gap": -0.0227,
+   "train_trades": 3
+  },
+  {
+   "fast": 10,
+   "slow": 30,
+   "rsi_buy": 25,
+   "train_ret": -0.0726,
+   "test_ret": -0.0596,
+   "overfit_gap": -0.013,
+   "train_trades": 5
+  },
+  {
+   "fast": 10,
+   "slow": 30,
+   "rsi_buy": 35,
+   "train_ret": -0.0726,
+   "test_ret": -0.0596,
+   "overfit_gap": -0.013,
+   "train_trades": 5
+  },
+  {
+   "fast": 10,
+   "slow": 90,
+   "rsi_buy": 25,
+   "train_ret": -0.0846,
+   "test_ret": -0.049,
+   "overfit_gap": -0.0356,
+   "train_trades": 1
+  },
+  {
+   "fast": 10,
+   "slow": 90,
+   "rsi_buy": 35,
+   "train_ret": -0.0846,
+   "test_ret": -0.049,
+   "overfit_gap": -0.0356,
+   "train_trades": 1
+  },
+  {
+   "fast": 20,
+   "slow": 30,
+   "rsi_buy": 25,
+   "train_ret": -0.1149,
+   "test_ret": 0.0356,
+   "overfit_gap": -0.1505,
+   "train_trades": 5
+  },
+  {
+   "fast": 20,
+   "slow": 30,
+   "rsi_buy": 35,
+   "train_ret": -0.1149,
+   "test_ret": 0.0356,
+   "overfit_gap": -0.1505,
+   "train_trades": 5
+  },
+  {
+   "fast": 20,
+   "slow": 90,
+   "rsi_buy": 25,
+   "train_ret": -0.1535,
+   "test_ret": -0.0562,
+   "overfit_gap": -0.0973,
+   "train_trades": 1
+  },
+  {
+   "fast": 20,
+   "slow": 90,
+   "rsi_buy": 35,
+   "train_ret": -0.1535,
+   "test_ret": -0.0562,
+   "overfit_gap": -0.0973,
+   "train_trades": 1
+  },
+  {
+   "fast": 20,
+   "slow": 60,
+   "rsi_buy": 25,
+   "train_ret": -0.237,
+   "test_ret": -0.0718,
+   "overfit_gap": -0.1652,
+   "train_trades": 4
+  },
+  {
+   "fast": 20,
+   "slow": 60,
+   "rsi_buy": 35,
+   "train_ret": -0.237,
+   "test_ret": -0.0718,
+   "overfit_gap": -0.1652,
+   "train_trades": 4
+  }
+ ],
+ "leader": {
+  "train_ret": -0.0121,
+  "test_ret": -0.0417,
+  "overfit_gap": 0.0296
+ },
+ "disclosure": "in-sample until proven otherwise; test window may be consulted once"
+}
