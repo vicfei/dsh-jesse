@@ -1,3 +1,5 @@
 __pycache__/
 *.pyc
-opt_results/
+node_modules/
+*.tgz
+opts/
