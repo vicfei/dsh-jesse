@@ -163,6 +163,7 @@ def main():
           f"— reproduce with the same seed. Not investment advice.")
     gaps = coverage_gaps(bars)
     print(f"source: {bars[0][0]} → {bars[-1][0]} · {len(bars)} bars · {len(gaps)} gap(s) >10d")
+    print("\n★ github.com/vicfei/dsh-jesse")
 
 
 if __name__ == "__main__":
